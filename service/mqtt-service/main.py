@@ -267,12 +267,14 @@ class MQTTService:
         if sensor_type == "RAIN_SENSOR":
             rain_value = data.get("is_raining")
             rain_level = data.get("level")
+            timestamp_str = data.get("timestamp", now.isoformat())
+            # 使用 is_raining 作为 sensor_name，与产品配置 data_field 保持一致
             if rain_value is not None:
-                self._upsert_sensor(db, device_uuid, "rain", rain_value, "", sensor_type, data.get("timestamp", now.isoformat()))
+                self._upsert_sensor(db, device_uuid, "is_raining", rain_value, "", sensor_type, timestamp_str)
                 valid_count += 1
-                logger.debug(f"  - rain: {rain_value}")
+                logger.debug(f"  - is_raining: {rain_value}")
             if isinstance(rain_level, (int, float)):
-                self._upsert_sensor(db, device_uuid, "rain_level", rain_level, "", sensor_type, data.get("timestamp", now.isoformat()))
+                self._upsert_sensor(db, device_uuid, "rain_level", rain_level, "", sensor_type, timestamp_str)
                 valid_count += 1
                 logger.debug(f"  - rain_level: {rain_level}")
             logger.info(f"✅ 成功处理 {valid_count} 个传感器数据")
