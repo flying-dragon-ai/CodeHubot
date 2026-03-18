@@ -1719,31 +1719,26 @@ async def get_device_realtime_data(
             if not latest_timestamp or (row_time and row_time > latest_timestamp):
                 latest_timestamp = row_time
     
-    # 如果有产品配置，则按配置键映射值，确保前端卡片能直接匹配
-    mapped_latest = None
-    if product_sensor_types:
-        mapped_latest = {key: None for key in product_sensor_types.keys()}
-        for key, config in product_sensor_types.items():
-            data_field = config.get("data_field")
-            cfg_type = (config.get("type") or "").upper()
-            # 规则1：sensor_name 与配置key完全一致
-            if key in raw_latest_map:
-                mapped_latest[key] = raw_latest_map[key]
-                continue
-            # 规则2：sensor_type一致且 data_field 与 sensor_name 对应
-            for row in sensor_rows:
-                if (row.sensor_type or "").upper() == cfg_type and data_field and row.sensor_name == data_field:
-                    mapped_latest[key] = raw_latest_map.get(row.sensor_name)
-                    break
-        logger.info(f"✅ 按产品配置映射后的字段: {mapped_latest}")
-    
+    # 构造 sensors 元数据列表，包含每个传感器的完整信息
+    sensors_meta = [
+        {
+            "sensor_name": row.sensor_name,
+            "sensor_type": row.sensor_type or "",
+            "value": raw_latest_map.get(row.sensor_name),
+            "unit": row.sensor_unit or "",
+            "timestamp": row.timestamp.replace(tzinfo=beijing_tz).isoformat() if row.timestamp else None
+        }
+        for row in sensor_rows
+    ]
+
     latest_payload = {
         "timestamp": latest_timestamp.isoformat() if latest_timestamp else None,
-        "data": mapped_latest if mapped_latest is not None else raw_latest_map
+        "data": raw_latest_map,   # 始终返回原始 sensor_name，前端负责映射显示名称
+        "sensors": sensors_meta   # 附带完整元数据，前端无产品配置时可直接使用
     }
-    
-    logger.info(f"✅ 最新数据字段: {list(latest_payload['data'].keys())}, 时间: {latest_timestamp}")
-    
+
+    logger.info(f"✅ 最新数据字段: {list(raw_latest_map.keys())}, 时间: {latest_timestamp}")
+
     return success_response(data={
         "device_uuid": device_uuid,
         "device_name": device.name,
