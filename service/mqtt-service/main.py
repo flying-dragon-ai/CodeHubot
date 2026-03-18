@@ -273,10 +273,6 @@ class MQTTService:
                 self._upsert_sensor(db, device_uuid, "is_raining", rain_value, "", sensor_type, timestamp_str)
                 valid_count += 1
                 logger.debug(f"  - is_raining: {rain_value}")
-            if isinstance(rain_level, (int, float)):
-                self._upsert_sensor(db, device_uuid, "rain_level", rain_level, "", sensor_type, timestamp_str)
-                valid_count += 1
-                logger.debug(f"  - rain_level: {rain_level}")
             logger.info(f"✅ 成功处理 {valid_count} 个传感器数据")
             return
         

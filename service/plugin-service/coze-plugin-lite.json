@@ -40,13 +40,11 @@
                 "温度",
                 "湿度",
                 "雨水",
-                "雨水级别",
                 "DS18B20",
                 "DS18B20温度",
                 "temperature",
                 "humidity",
-                "是否下雨",
-                "rain_level"
+                "是否下雨"
               ],
               "example": "温度"
             }

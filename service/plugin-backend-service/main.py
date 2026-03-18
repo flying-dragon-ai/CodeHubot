@@ -369,7 +369,6 @@ async def get_sensor_data(device_uuid: str, sensor: str):
             "雨滴": "is_raining",
             "是否下雨": "is_raining",
             "rain": "is_raining",
-            "雨水级别": "rain_level",
         }
         
         # 获取实际的传感器键名
@@ -420,7 +419,6 @@ async def get_sensor_data(device_uuid: str, sensor: str):
                 "humidity": "%",          # 湿度
                 "ds18b20": "°C",         # DS18B20温度
                 "is_raining": "",        # 雨水（布尔值，无单位）
-                "rain_level": "级",      # 雨水级别
                 "light": "lx",           # 光照
                 "pressure": "Pa",        # 气压
                 "altitude": "m",         # 海拔

@@ -1048,8 +1048,7 @@ const getSensorDataFields = (sensorType) => {
       { label: '温度 (temperature)', value: 'temperature' }
     ],
     'RAIN_SENSOR': [
-      { label: '是否下雨 (is_raining)', value: 'is_raining' },
-      { label: '雨量等级 (rain_level)', value: 'rain_level' }
+      { label: '是否下雨 (is_raining)', value: 'is_raining' }
     ]
   }
   return fieldMapping[sensorType] || []

@@ -184,8 +184,6 @@ def map_sensor_key(sensor_name: str) -> str:
         "雨水传感器": "is_raining",
         "是否下雨": "is_raining",
         "rain": "is_raining",
-        "雨水级别": "rain_level",
-        "rain_level": "rain_level",
     }
     return sensor_map.get(sensor_name, sensor_name)
 
