@@ -45,7 +45,7 @@
                 "DS18B20温度",
                 "temperature",
                 "humidity",
-                "rain",
+                "是否下雨",
                 "rain_level"
               ],
               "example": "温度"

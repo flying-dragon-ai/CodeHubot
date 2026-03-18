@@ -172,20 +172,20 @@ def get_internal_headers() -> dict:
 
 
 def map_sensor_key(sensor_name: str) -> str:
-    """映射传感器名称到数据库键"""
+    """映射传感器名称到数据库 sensor_name 字段（供 plugin-backend-service 查询使用）"""
     sensor_map = {
-        "温度": "DHT11_temperature",
-        "湿度": "DHT11_humidity",
-        "temperature": "DHT11_temperature",
-        "humidity": "DHT11_humidity",
-        "DS18B20": "DS18B20_temperature",
-        "DS18B20温度": "DS18B20_temperature",
-        "雨水": "RAIN_SENSOR",
-        "雨水传感器": "RAIN_SENSOR",
-        "是否下雨": "RAIN_SENSOR",
-        "rain": "RAIN_SENSOR",
-        "雨水级别": "RAIN_SENSOR_level",
-        "rain_level": "RAIN_SENSOR_level",
+        "温度": "temperature",
+        "湿度": "humidity",
+        "temperature": "temperature",
+        "humidity": "humidity",
+        "DS18B20": "ds18b20",
+        "DS18B20温度": "ds18b20",
+        "雨水": "is_raining",
+        "雨水传感器": "is_raining",
+        "是否下雨": "is_raining",
+        "rain": "is_raining",
+        "雨水级别": "rain_level",
+        "rain_level": "rain_level",
     }
     return sensor_map.get(sensor_name, sensor_name)
 
