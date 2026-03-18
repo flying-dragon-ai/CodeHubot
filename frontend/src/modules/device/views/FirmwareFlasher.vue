@@ -80,31 +80,30 @@
             <span>选择固件版本</span>
           </div>
         </template>
-        
-        <el-select 
-          v-model="selectedFirmwareId" 
-          placeholder="请选择固件版本"
-          size="large"
-          style="width: 100%;"
-          @change="handleSelectFirmware"
-        >
-          <el-option
+
+        <div class="firmware-card-list">
+          <div
             v-for="firmware in firmwareList"
             :key="firmware.id"
-            :label="`${firmware.name} (${firmware.date})`"
-            :value="firmware.id"
-          />
-        </el-select>
-
-        <!-- 固件信息 -->
-        <div v-if="selectedFirmware" class="firmware-info">
-          <el-descriptions :column="1" border>
-            <el-descriptions-item label="固件名称">{{ selectedFirmware.name }}</el-descriptions-item>
-            <el-descriptions-item label="版本号">{{ selectedFirmware.version }}</el-descriptions-item>
-            <el-descriptions-item label="发布日期">{{ selectedFirmware.date }}</el-descriptions-item>
-            <el-descriptions-item label="文件大小">{{ selectedFirmware.size }}</el-descriptions-item>
-            <el-descriptions-item label="说明">{{ selectedFirmware.description }}</el-descriptions-item>
-          </el-descriptions>
+            class="firmware-card-item"
+            :class="{ 'is-selected': selectedFirmwareId === firmware.id }"
+            @click="selectedFirmwareId = firmware.id; handleSelectFirmware(firmware.id)"
+          >
+            <div class="firmware-card-radio">
+              <el-radio :model-value="selectedFirmwareId" :label="firmware.id" @change="() => {}" />
+            </div>
+            <div class="firmware-card-body">
+              <div class="firmware-card-header">
+                <span class="firmware-card-name">{{ firmware.name }}</span>
+                <el-tag size="small" type="primary">{{ firmware.version }}</el-tag>
+              </div>
+              <div class="firmware-card-desc">{{ firmware.description }}</div>
+              <div class="firmware-card-meta">
+                <span><el-icon><Calendar /></el-icon> {{ firmware.date }}</span>
+                <span><el-icon><Files /></el-icon> {{ firmware.size }}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <el-alert
@@ -113,7 +112,7 @@
           show-icon
           style="margin-top: 15px;"
         >
-          💡 固件文件已部署在服务器上，选择版本后直接烧录即可
+          💡 固件文件已部署在服务器上，选择一个版本后点击"开始烧录"即可
         </el-alert>
       </el-card>
 
@@ -235,7 +234,7 @@ import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   Link, Close, FolderOpened, Upload,
-  Document, InfoFilled, Check
+  Document, InfoFilled, Check, Calendar, Files
 } from '@element-plus/icons-vue'
 
 // 状态
@@ -256,15 +255,24 @@ let transport = null
 const firmwareList = ref([
   {
     id: 'esp32s3-lite-v1.7',
-    name: 'ESP32-S3-Lite v1.7',
-    version: '1.7',
+    name: 'ESP32-S3-Lite',
+    version: 'v1.7',
     filename: '/firmware/ESP32-S3-Lite-01-v1.7.bin',
-    size: '约 6 MB',
+    size: '约 6.1 MB',
     date: '2025-12-23',
-    description: '最新稳定版本，包含所有功能优化',
+    description: '轻量版本，适用于基础传感器和控制场景',
     address: '0x0'
   },
-  // 可以添加更多固件版本
+  {
+    id: 'esp32s3-rain-v1.7',
+    name: 'ESP32-S3-Rain',
+    version: 'v1.7',
+    filename: '/firmware/ESP32-S3-Rain-01-v1.7.bin',
+    size: '约 6.1 MB',
+    date: '2025-03-18',
+    description: '雨量传感器专用版本，支持雨量检测功能',
+    address: '0x0'
+  }
 ])
 
 // 添加日志
@@ -594,8 +602,73 @@ onMounted(() => {
     font-weight: 600;
   }
   
-  .firmware-info {
-    margin-top: 15px;
+  .firmware-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .firmware-card-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 2px solid #e4e7ed;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+
+    &:hover {
+      border-color: #a0cfff;
+      background: #f5f9ff;
+    }
+
+    &.is-selected {
+      border-color: #409eff;
+      background: #ecf5ff;
+    }
+
+    .firmware-card-radio {
+      padding-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .firmware-card-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .firmware-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .firmware-card-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #303133;
+    }
+
+    .firmware-card-desc {
+      font-size: 13px;
+      color: #606266;
+      margin-bottom: 8px;
+    }
+
+    .firmware-card-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: #909399;
+
+      span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+    }
   }
 }
 

@@ -129,6 +129,29 @@
             </div>
           </el-form-item>
 
+          <!-- 工作流节点配置 -->
+          <el-form-item>
+            <template #label>
+              <div class="form-label sub-label">
+                <el-icon><Connection /></el-icon>
+                <span>工作流可用节点</span>
+              </div>
+            </template>
+            <div class="form-control">
+              <el-checkbox-group v-model="workflowNodeConfig" class="node-checkbox-group">
+                <el-checkbox
+                  v-for="option in workflowNodeOptions"
+                  :key="option.value"
+                  :label="option.value"
+                  :disabled="option.disabled"
+                >
+                  {{ option.label }}
+                </el-checkbox>
+              </el-checkbox-group>
+              <span class="description">仅展示已测试完成的节点类型（开始/结束默认启用）</span>
+            </div>
+          </el-form-item>
+
           <!-- 对话功能 -->
           <el-form-item>
             <template #label>
@@ -212,6 +235,18 @@
             {{ featureConfig.ai_module_workflow_enabled ? '已开启' : '已关闭' }}
           </el-tag>
         </el-descriptions-item>
+        <el-descriptions-item label="工作流节点">
+          <div class="node-tag-list">
+            <el-tag
+              v-for="label in enabledWorkflowNodeLabels"
+              :key="label"
+              size="small"
+              type="info"
+            >
+              {{ label }}
+            </el-tag>
+          </div>
+        </el-descriptions-item>
         <el-descriptions-item label="对话功能">
           <el-tag :type="featureConfig.ai_module_agent_enabled ? 'success' : 'info'" size="small">
             {{ featureConfig.ai_module_agent_enabled ? '已开启' : '已关闭' }}
@@ -249,7 +284,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Check, UserFilled, Monitor, MagicStick, Reading, Connection, ChatDotRound, Grid
@@ -273,6 +308,40 @@ const featureConfig = reactive({
   ai_module_prompt_template_enabled: true
 })
 
+const workflowNodeOptions = [
+  { label: '开始', value: 'start', disabled: true },
+  { label: 'LLM调用', value: 'llm' },
+  { label: 'HTTP请求', value: 'http' },
+  { label: '知识库检索', value: 'knowledge' },
+  { label: '意图识别', value: 'intent' },
+  { label: '字符串处理', value: 'string' },
+  { label: '结束', value: 'end', disabled: true }
+]
+
+const defaultWorkflowNodeTypes = workflowNodeOptions.map(option => option.value)
+const workflowNodeConfig = ref([...defaultWorkflowNodeTypes])
+
+const normalizedWorkflowNodes = computed(() => {
+  const selected = Array.isArray(workflowNodeConfig.value) ? workflowNodeConfig.value : []
+  const normalized = new Set(
+    selected
+      .filter(item => typeof item === 'string' && item.trim())
+      .map(item => item.trim())
+  )
+  normalized.add('start')
+  normalized.add('end')
+  return workflowNodeOptions
+    .map(option => option.value)
+    .filter(value => normalized.has(value))
+})
+
+const enabledWorkflowNodeLabels = computed(() => {
+  const enabledSet = new Set(normalizedWorkflowNodes.value)
+  return workflowNodeOptions
+    .filter(option => enabledSet.has(option.value))
+    .map(option => option.label)
+})
+
 // 获取模块配置
 const fetchConfig = async () => {
   loading.value = true
@@ -290,6 +359,20 @@ const fetchConfig = async () => {
         featureConfig[config.config_key] = config.config_value === 'true'
       }
     })
+
+    const workflowNodeConfigItem = configs.find(
+      config => config.config_key === 'workflow_enabled_node_types'
+    )
+    if (workflowNodeConfigItem?.config_value) {
+      try {
+        const parsed = JSON.parse(workflowNodeConfigItem.config_value)
+        if (Array.isArray(parsed)) {
+          workflowNodeConfig.value = parsed
+        }
+      } catch (error) {
+        console.warn('工作流节点配置解析失败，使用默认配置', error)
+      }
+    }
   } catch (error) {
     console.error('获取模块配置失败:', error)
     ElMessage.error(error.response?.data?.detail || '获取模块配置失败')
@@ -331,6 +414,9 @@ const saveConfig = async () => {
         }),
         request.put('/system-config/configs/ai_module_prompt_template_enabled', {
           config_value: featureConfig.ai_module_prompt_template_enabled.toString()
+        }),
+        request.put('/system-config/configs/workflow_enabled_node_types', {
+          config_value: JSON.stringify(normalizedWorkflowNodes.value)
         })
       ])
     }
@@ -416,6 +502,18 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 20px;
+}
+
+.node-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.node-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .form-control .description {

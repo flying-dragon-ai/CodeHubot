@@ -13,7 +13,11 @@ class WorkflowValidator:
     """工作流验证器"""
     
     @staticmethod
-    def validate(nodes: List[WorkflowNode], edges: List[WorkflowEdge]) -> ValidationResult:
+    def validate(
+        nodes: List[WorkflowNode],
+        edges: List[WorkflowEdge],
+        allowed_node_types: Optional[Set[str]] = None
+    ) -> ValidationResult:
         """
         执行完整的工作流验证流程
         
@@ -27,6 +31,16 @@ class WorkflowValidator:
         errors = []
         warnings = []
         
+        # 0. 节点类型验证（可选）
+        if allowed_node_types is not None:
+            invalid_nodes = [
+                f"{node.id}({node.type})"
+                for node in nodes
+                if node.type not in allowed_node_types
+            ]
+            if invalid_nodes:
+                errors.append(f"工作流包含未启用的节点类型: {', '.join(invalid_nodes)}")
+
         # 1. 开始节点验证
         start_nodes = [node for node in nodes if node.type == 'start']
         if len(start_nodes) == 0:

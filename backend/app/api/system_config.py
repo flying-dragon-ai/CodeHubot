@@ -349,6 +349,14 @@ async def init_module_config(
         ("enable_pbl_module", "true", "boolean", "是否开启PBL模块", "module", True),
         ("platform_name", "CodeHubot", "string", "平台名称", "system", True),
         ("platform_description", "智能物联网管理平台", "string", "平台描述", "system", True),
+        (
+            "workflow_enabled_node_types",
+            '["start","llm","http","knowledge","intent","string","end"]',
+            "json",
+            "工作流可用节点类型列表",
+            "ai",
+            True
+        ),
     ]
     
     created_count = 0

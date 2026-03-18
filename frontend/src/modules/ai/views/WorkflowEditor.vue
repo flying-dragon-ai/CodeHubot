@@ -1109,11 +1109,13 @@ import {
 import { getActiveLLMModels } from '../api/llm-model'
 import { getKnowledgeBases } from '../api/knowledgeBases'
 import { getAgents } from '../api/agent'
+import { useConfigStore } from '@/stores/config'
 // import ExecutionPanel from '@device/components/workflow/ExecutionPanel.vue' // 组件暂时不可用
 
 const route = useRoute()
 const router = useRouter()
 const { fitView: vueFlowFitView, project, viewport, vueFlowRef } = useVueFlow()
+const configStore = useConfigStore()
 
 // 基础数据
 const workflowName = ref('')
@@ -1354,9 +1356,36 @@ const nodeTypes = [
   { type: 'end', label: '结束', icon: 'SuccessFilled', color: '#f56c6c' }
 ]
 
+const defaultEnabledNodeTypes = [
+  'start',
+  'llm',
+  'http',
+  'knowledge',
+  'intent',
+  'string',
+  'end'
+]
+
+const enabledNodeTypes = computed(() => {
+  const configured = configStore.getConfig('workflow_enabled_node_types', null)
+  const configuredList = Array.isArray(configured) ? configured : defaultEnabledNodeTypes
+  const normalized = new Set(
+    configuredList
+      .filter(item => typeof item === 'string' && item.trim())
+      .map(item => item.trim())
+  )
+  normalized.add('start')
+  normalized.add('end')
+  return normalized
+})
+
+const visibleNodeTypes = computed(() => {
+  return nodeTypes.filter(t => enabledNodeTypes.value.has(t.type))
+})
+
 // 可拖拽的节点类型（排除开始和结束节点）
 const draggableNodeTypes = computed(() => {
-  return nodeTypes.filter(t => t.type !== 'start' && t.type !== 'end')
+  return visibleNodeTypes.value.filter(t => t.type !== 'start' && t.type !== 'end')
 })
 
 // 选中的节点
@@ -1474,6 +1503,7 @@ const createNode = (nodeType, x, y) => {
 
 // 组件挂载后初始化
 onMounted(() => {
+  configStore.loadPublicConfigs()
   loadWorkflow()
   loadLLMModels()
   loadKnowledgeBases()
@@ -1628,6 +1658,10 @@ const onDrop = (event) => {
 
 // 在指定位置添加节点（拖拽时使用）
 const addNodeAtPosition = (nodeType, x, y) => {
+  if (!enabledNodeTypes.value.has(nodeType.type)) {
+    ElMessage.warning('该节点类型未启用，无法添加')
+    return
+  }
   if ((nodeType.type === 'start' || nodeType.type === 'end') && hasNodeType(nodeType.type)) {
     ElMessage.warning(`${nodeType.label}节点只能有一个`)
     return

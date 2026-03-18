@@ -3,6 +3,7 @@
 """
 import logging
 import uuid
+import json
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -13,6 +14,7 @@ from app.core.database import get_db
 from app.core.response import success_response, error_response
 from app.models.workflow import Workflow
 from app.models.workflow_execution import WorkflowExecution
+from app.models.system_config import SystemConfig
 from app.schemas.workflow import (
     WorkflowCreate, WorkflowUpdate, WorkflowResponse, WorkflowListResponse,
     WorkflowExecutionCreate, WorkflowExecutionResponse, WorkflowExecutionListResponse,
@@ -28,6 +30,38 @@ from app.utils.timezone import get_beijing_time_naive
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+DEFAULT_WORKFLOW_NODE_TYPES = {
+    "start",
+    "llm",
+    "http",
+    "knowledge",
+    "intent",
+    "string",
+    "end"
+}
+
+
+def get_allowed_node_types(db: Session) -> set:
+    """获取系统允许的工作流节点类型"""
+    config = db.query(SystemConfig).filter(
+        SystemConfig.config_key == "workflow_enabled_node_types"
+    ).first()
+
+    if not config or not config.config_value:
+        return set(DEFAULT_WORKFLOW_NODE_TYPES)
+
+    try:
+        configured_types = json.loads(config.config_value)
+        if not isinstance(configured_types, list):
+            return set(DEFAULT_WORKFLOW_NODE_TYPES)
+        allowed_types = {item for item in configured_types if isinstance(item, str) and item.strip()}
+    except Exception:
+        allowed_types = set(DEFAULT_WORKFLOW_NODE_TYPES)
+
+    # 强制保留开始和结束节点
+    allowed_types.update({"start", "end"})
+    return allowed_types
 
 
 def is_admin_user(user: User) -> bool:
@@ -108,7 +142,12 @@ def create_workflow(
     """创建工作流"""
     # 验证工作流结构
     validator = WorkflowValidator()
-    validation_result = validator.validate(workflow.nodes, workflow.edges)
+    allowed_node_types = get_allowed_node_types(db)
+    validation_result = validator.validate(
+        workflow.nodes,
+        workflow.edges,
+        allowed_node_types=allowed_node_types
+    )
     
     if not validation_result.is_valid:
         raise HTTPException(
@@ -202,7 +241,12 @@ def update_workflow(
             edges = edges_data
         
         validator = WorkflowValidator()
-        validation_result = validator.validate(nodes, edges)
+        allowed_node_types = get_allowed_node_types(db)
+        validation_result = validator.validate(
+            nodes,
+            edges,
+            allowed_node_types=allowed_node_types
+        )
         
         if not validation_result.is_valid:
             raise HTTPException(
