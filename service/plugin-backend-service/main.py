@@ -402,52 +402,55 @@ async def get_sensor_data(device_uuid: str, sensor: str):
         device_name = device.name if device else "未知设备"
         last_seen = device.last_seen if device else None
         
-        # 转换 value 为数字类型（Coze要求返回number类型）
+        # 转换 value 为数字类型，布尔字符串 "False"/"True" → 0/1
+        raw_val = sensor_data.sensor_value
+        status_text = None
         try:
-            numeric_value = float(sensor_data.sensor_value)
+            if isinstance(raw_val, str) and raw_val.strip().lower() in ("false", "true"):
+                bool_val = raw_val.strip().lower() == "true"
+                numeric_value = 1 if bool_val else 0
+                status_text = "有雨水" if bool_val else "无雨水"
+            else:
+                numeric_value = float(raw_val)
         except (ValueError, TypeError):
-            # 如果无法转换为数字，保留原值（可能是布尔值或其他类型）
-            numeric_value = sensor_data.sensor_value
-            logger.warning(f"⚠️  传感器值无法转换为数字: {sensor_data.sensor_value}")
-        
-        # 🔧 如果数据库中 sensor_unit 为空，根据传感器类型给出默认单位
+            numeric_value = raw_val
+            logger.warning(f"⚠️  传感器值无法转换为数字: {raw_val}")
+
+        # 默认单位映射
         sensor_unit = sensor_data.sensor_unit
         if not sensor_unit or sensor_unit.strip() == "":
-            # 默认单位映射
             default_units = {
-                "temperature": "°C",      # 温度
-                "humidity": "%",          # 湿度
-                "ds18b20": "°C",         # DS18B20温度
-                "is_raining": "",        # 雨水（布尔值，无单位）
-                "light": "lx",           # 光照
-                "pressure": "Pa",        # 气压
-                "altitude": "m",         # 海拔
-                "distance": "cm",        # 距离
-                "gas": "ppm",            # 气体浓度
-                "soil_moisture": "%",    # 土壤湿度
-                "voltage": "V",          # 电压
-                "current": "A",          # 电流
-                "power": "W"             # 功率
+                "temperature": "°C",
+                "humidity": "%",
+                "ds18b20": "°C",
+                "is_raining": "(0=无雨水,1=有雨水)",
+                "light": "lx",
+                "pressure": "Pa",
+                "altitude": "m",
+                "distance": "cm",
+                "gas": "ppm",
+                "soil_moisture": "%",
+                "voltage": "V",
+                "current": "A",
+                "power": "W"
             }
             sensor_unit = default_units.get(actual_sensor_name, "")
-            if sensor_unit:
-                logger.info(f"💡 使用默认单位: {actual_sensor_name} → {sensor_unit}")
-        
+
         logger.info(f"✅ 传感器数据: {sensor_data.sensor_name} = {numeric_value} {sensor_unit}")
-        
-        return StandardResponse(
-            code=200,
-            msg="成功",
-            data={
-                "value": numeric_value,  # 转换为数字类型
-                "unit": sensor_unit,     # 使用默认单位（如果数据库为空）
-                "sensor_name": sensor_data.sensor_name,
-                "sensor_type": sensor_data.sensor_type or "",
-                "timestamp": sensor_data.timestamp.isoformat() if sensor_data.timestamp else None,
-                "device_name": device_name,
-                "last_seen": last_seen.isoformat() if last_seen else None
-            }
-        )
+
+        response_data = {
+            "value": numeric_value,
+            "unit": sensor_unit,
+            "sensor_name": sensor_data.sensor_name,
+            "sensor_type": sensor_data.sensor_type or "",
+            "timestamp": sensor_data.timestamp.isoformat() if sensor_data.timestamp else None,
+            "device_name": device_name,
+            "last_seen": last_seen.isoformat() if last_seen else None
+        }
+        if status_text is not None:
+            response_data["status"] = status_text
+
+        return StandardResponse(code=200, msg="成功", data=response_data)
         
     except HTTPException:
         raise
